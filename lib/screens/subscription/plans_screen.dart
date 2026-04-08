@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/app_theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class PlansScreen extends StatefulWidget {
   const PlansScreen({super.key});
@@ -30,12 +31,14 @@ class _PlansScreenState extends State<PlansScreen> {
         ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
         : ListView(
             padding: const EdgeInsets.all(20),
+            physics: const BouncingScrollPhysics(),
             children: [
-              const Text('Our Plans', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text('Our Plans', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -1)),
               const SizedBox(height: 4),
-              const Text('Choose the plan that fits your garden', style: TextStyle(color: AppTheme.textSecondary)),
-              const SizedBox(height: 24),
-              ..._plans.map((p) => _PlanCard(plan: p)),
+              const Text('Professional garden care, simplified for you', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16)),
+              const SizedBox(height: 32),
+              ..._plans.map((p) => _PlanCard(plan: p))
+                  .toList().animate(interval: 100.ms).fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
               const SizedBox(height: 80),
             ],
           ),

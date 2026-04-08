@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:animations/animations.dart';
 import 'services/api_service.dart';
 import 'services/auth_provider.dart';
 import 'screens/auth/splash_screen.dart';
@@ -51,7 +52,14 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Ghar Ka Mali',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
+        theme: AppTheme.lightTheme.copyWith(
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {
+              TargetPlatform.android: SharedAxisPageTransitionsBuilder(transitionType: SharedAxisTransitionType.horizontal),
+              TargetPlatform.iOS: SharedAxisPageTransitionsBuilder(transitionType: SharedAxisTransitionType.horizontal),
+            },
+          ),
+        ),
         initialRoute: '/',
         routes: {
           '/':               (_) => const SplashScreen(),
