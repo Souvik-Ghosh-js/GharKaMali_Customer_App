@@ -10,6 +10,7 @@ class PaymentScreen extends StatefulWidget {
   final String type;           // 'booking' | 'subscription' | 'wallet_topup'
   final int? bookingId;
   final int? subscriptionId;
+  final int? orderId;
   final double? amount;
   final String? label;
 
@@ -18,6 +19,7 @@ class PaymentScreen extends StatefulWidget {
     required this.type,
     this.bookingId,
     this.subscriptionId,
+    this.orderId,
     this.amount,
     this.label,
   });
@@ -47,6 +49,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         type: widget.type,
         bookingId: widget.bookingId,
         subscriptionId: widget.subscriptionId,
+        orderId: widget.orderId,
         amount: widget.amount,
       );
       setState(() { _payuData = res['data']; _initiated = true; });
@@ -183,6 +186,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     switch (widget.type) {
       case 'booking': return 'Booking Payment';
       case 'subscription': return 'Subscription Payment';
+      case 'order': return 'Shop Order';
       case 'wallet_topup': return 'Wallet Top-up';
       default: return 'Payment';
     }

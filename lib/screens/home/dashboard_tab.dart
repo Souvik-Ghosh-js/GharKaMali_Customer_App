@@ -87,19 +87,25 @@ class _DashboardTabState extends State<DashboardTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Quick Actions
-                    Row(children: [
-                      _QuickAction(icon: Icons.add_circle_outline, label: 'Book Now', color: AppTheme.primary,
-                        onTap: () => Navigator.pushNamed(context, '/bookings/create')),
-                      const SizedBox(width: 12),
-                      _QuickAction(icon: Icons.subscriptions_outlined, label: 'Subscribe', color: Colors.orange,
-                        onTap: () => Navigator.pushNamed(context, '/plans')),
-                      const SizedBox(width: 12),
-                      _QuickAction(icon: Icons.local_florist_outlined, label: 'Identify Plant', color: Colors.teal,
-                        onTap: () => Navigator.pushNamed(context, '/plant')),
-                      const SizedBox(width: 12),
-                      _QuickAction(icon: Icons.history, label: 'History', color: Colors.purple,
-                        onTap: () => Navigator.pushNamed(context, '/bookings')),
-                    ]),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(children: [
+                        _QuickAction(icon: Icons.add_circle_outline, label: 'Book Now', color: AppTheme.primary,
+                          onTap: () => Navigator.pushNamed(context, '/bookings/create')),
+                        const SizedBox(width: 12),
+                        _QuickAction(icon: Icons.subscriptions_outlined, label: 'Subscribe', color: Colors.orange,
+                          onTap: () => Navigator.pushNamed(context, '/plans')),
+                        const SizedBox(width: 12),
+                        _QuickAction(icon: Icons.shopping_bag_outlined, label: 'Store', color: Colors.blue,
+                          onTap: () => Navigator.pushNamed(context, '/shop')),
+                        const SizedBox(width: 12),
+                        _QuickAction(icon: Icons.article_outlined, label: 'Blogs', color: Colors.deepPurple,
+                          onTap: () => Navigator.pushNamed(context, '/blogs')),
+                        const SizedBox(width: 12),
+                        _QuickAction(icon: Icons.local_florist_outlined, label: 'Identify', color: Colors.teal,
+                          onTap: () => Navigator.pushNamed(context, '/plant')),
+                      ]),
+                    ),
 
                     const SizedBox(height: 28),
 
@@ -164,7 +170,7 @@ class _QuickAction extends StatelessWidget {
   final IconData icon; final String label; final Color color; final VoidCallback onTap;
   const _QuickAction({required this.icon, required this.label, required this.color, required this.onTap});
   @override
-  Widget build(BuildContext context) => Expanded(child: GestureDetector(
+  Widget build(BuildContext context) => SizedBox(width: 80, child: GestureDetector(
     onTap: onTap,
     child: Container(
       padding: const EdgeInsets.symmetric(vertical: 14),

@@ -77,7 +77,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           TextButton(
             onPressed: _saving ? null : _save,
             child: _saving
-                ? const SizedBox(h: 18, w: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Text('Save', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
           ),
         ],

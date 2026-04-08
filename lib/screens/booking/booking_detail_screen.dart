@@ -115,13 +115,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             if (_b['payment_status'] == 'pending' && _b['status'] != 'cancelled') GkmCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('Payment Pending', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.warning)),
               const SizedBox(height: 6),
-              Text('Amount due: ₹\${_b['total_amount'] ?? 0}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('Amount due: ₹${_b['total_amount'] ?? 0}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () => Navigator.pushNamed(context, '/payment', arguments: {
                   'type': 'booking', 'booking_id': _b['id'],
                   'amount': double.tryParse(_b['total_amount']?.toString() ?? '0'),
-                  'label': 'Booking \${_b['booking_number']}',
+                  'label': 'Booking ${_b['booking_number']}',
                 }).then((_) => _reload()),
                 icon: const Icon(Icons.payment),
                 label: const Text('Pay Now via PayU'),
@@ -160,6 +160,29 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     const Text('Track', style: TextStyle(fontSize: 10, color: AppTheme.primary)),
                   ]),
               ]),
+              
+              if (['arrived', 'en_route', 'assigned'].contains(status) && _b['otp'] != null) ...[
+                const Divider(height: 32),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primary.withOpacity(0.1)),
+                  ),
+                  child: Row(children: [
+                    const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Service OTP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.primary)),
+                      Text('Share this with your gardener to start the service', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                    ])),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(8)),
+                      child: Text(_b['otp'].toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 2)),
+                    ),
+                  ]),
+                ),
+              ],
             ])),
 
             const SizedBox(height: 16),

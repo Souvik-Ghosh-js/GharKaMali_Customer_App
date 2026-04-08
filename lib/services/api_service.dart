@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://YOUR_LIGHTSAIL_IP:3000/api';
+  static const String baseUrl = 'https://gkm.gobt.in/api/';
   final SharedPreferences prefs;
   ApiService(this.prefs);
 
@@ -26,6 +26,11 @@ class ApiService {
 
   Future<Map<String, dynamic>> put(String path, Map<String, dynamic> body) async {
     final res = await http.put(Uri.parse('$baseUrl$path'), headers: headers, body: jsonEncode(body));
+    return _handle(res);
+  }
+
+  Future<Map<String, dynamic>> patch(String path, Map<String, dynamic> body) async {
+    final res = await http.patch(Uri.parse('$baseUrl$path'), headers: headers, body: jsonEncode(body));
     return _handle(res);
   }
 
@@ -85,14 +90,21 @@ class ApiService {
   Future<Map<String, dynamic>> getMySubscriptions() => get('/subscriptions/my');
   Future<Map<String, dynamic>> cancelSubscription(int id) =>
       put('/subscriptions/$id/cancel', {});
+  Future<Map<String, dynamic>> pauseSubscription(int id) =>
+      patch('/subscriptions/$id/pause', {});
+  Future<Map<String, dynamic>> resumeSubscription(int id) =>
+      patch('/subscriptions/$id/resume', {});
+  Future<Map<String, dynamic>> selectSubscriptionDates(int id, List<String> dates) =>
+      post('/subscriptions/$id/select-dates', {'dates': dates});
 
   // ── Payments (PayU) ───────────────────────────────────────────────────────
   Future<Map<String, dynamic>> initiatePayment({
-    required String type, int? bookingId, int? subscriptionId, double? amount,
+    required String type, int? bookingId, int? subscriptionId, int? orderId, double? amount,
   }) => post('/payments/initiate', {
     'type': type,
     if (bookingId != null) 'booking_id': bookingId,
     if (subscriptionId != null) 'subscription_id': subscriptionId,
+    if (orderId != null) 'order_id': orderId,
     if (amount != null) 'amount': amount,
   });
   Future<Map<String, dynamic>> checkPaymentStatus(String txnid) =>
@@ -106,6 +118,15 @@ class ApiService {
   Future<Map<String, dynamic>> identifyPlant(File image) =>
       _multipart('POST', '/plants/identify', {}, file: image, fieldName: 'image');
   Future<Map<String, dynamic>> getPlantHistory() => get('/plants/history');
+
+  // ── Shop ──────────────────────────────────────────────────────────────────
+  Future<Map<String, dynamic>> getShopCategories() => get('/shop/categories');
+  Future<Map<String, dynamic>> getShopProducts({int? categoryId, String? search}) =>
+      get('/shop/products?${categoryId != null ? 'category_id=$categoryId' : ''}${search != null ? '&search=$search' : ''}');
+  Future<Map<String, dynamic>> getProductDetail(int id) => get('/shop/products/$id');
+  Future<Map<String, dynamic>> createShopOrder(Map<String, dynamic> data) =>
+      post('/shop/orders', data);
+  Future<Map<String, dynamic>> getMyOrders() => get('/shop/orders/my');
 
   // ── Notifications ─────────────────────────────────────────────────────────
   Future<Map<String, dynamic>> getNotifications() => get('/notifications');

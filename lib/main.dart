@@ -12,8 +12,11 @@ import 'screens/booking/create_booking_screen.dart';
 import 'screens/booking/booking_detail_screen.dart';
 import 'screens/booking/track_gardener_screen.dart';
 import 'screens/booking/reschedule_screen.dart';
+import 'screens/shop/shop_screen.dart';
+import 'screens/blog/blog_list_screen.dart';
 import 'screens/subscription/plans_screen.dart';
 import 'screens/subscription/my_subscriptions_screen.dart';
+import 'screens/subscription/schedule_subscription_screen.dart';
 import 'screens/plant/plant_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/edit_profile_screen.dart';
@@ -65,6 +68,8 @@ class MyApp extends StatelessWidget {
           '/notifications':  (_) => const NotificationsScreen(),
           '/complaints':     (_) => const ComplaintsScreen(),
           '/service-areas':  (_) => const ServiceAreasScreen(),
+          '/shop':           (_) => const ShopScreen(),
+          '/blogs':          (_) => const BlogListScreen(),
         },
         onGenerateRoute: (settings) {
           switch (settings.name) {
@@ -92,6 +97,9 @@ class MyApp extends StatelessWidget {
                   amount: (args['amount'] as num?)?.toDouble(),
                   label: args['label'],
                 ));
+            case '/schedule-subscription':
+              return MaterialPageRoute(
+                builder: (_) => ScheduleSubscriptionScreen(subscription: settings.arguments as Map<String, dynamic>));
           }
           return null;
         },

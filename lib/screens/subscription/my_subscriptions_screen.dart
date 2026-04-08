@@ -24,21 +24,44 @@ class _MySubscriptionsScreenState extends State<MySubscriptionsScreen> {
   }
 
   Future<void> _cancel(int id) async {
-    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('Cancel Subscription?'),
-      content: const Text('Are you sure you want to cancel this subscription?'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
-        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes', style: TextStyle(color: Colors.red))),
-      ],
-    ));
+    final ok = await _confirm('Cancel Subscription?', 'Are you sure you want to cancel this subscription?');
     if (ok != true) return;
     try {
       await context.read<ApiService>().cancelSubscription(id);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subscription cancelled')));
+      _snack('Subscription cancelled');
       _load();
-    } catch (e) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()))); }
+    } catch (e) { _snack(e.toString()); }
   }
+
+  Future<void> _pause(int id) async {
+    final ok = await _confirm('Pause Subscription?', 'Your visits will pause. You can resume anytime.');
+    if (ok != true) return;
+    try {
+      await context.read<ApiService>().pauseSubscription(id);
+      _snack('Subscription paused');
+      _load();
+    } catch (e) { _snack(e.toString()); }
+  }
+
+  Future<void> _resume(int id) async {
+    try {
+      await context.read<ApiService>().resumeSubscription(id);
+      _snack('Subscription resumed');
+      _load();
+    } catch (e) { _snack(e.toString()); }
+  }
+
+  Future<bool?> _confirm(String title, String content) async {
+    return showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      title: Text(title), content: Text(content),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Back')),
+        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirm', style: TextStyle(color: AppTheme.primary))),
+      ],
+    ));
+  }
+
+  void _snack(String msg) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -90,12 +113,48 @@ class _MySubscriptionsScreenState extends State<MySubscriptionsScreen> {
                           const SizedBox(height: 4),
                           Text('${s['visits_total'] - s['visits_used']} visits remaining', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                         ],
-                        if (isActive) ...[
+                        if (s['payment_status'] == 'pending') ...[
                           const SizedBox(height: 14),
-                          OutlinedButton(
-                            onPressed: () => _cancel(s['id']),
-                            child: const Text('Cancel Subscription'),
-                            style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red), minimumSize: const Size(double.infinity, 42)),
+                          ElevatedButton.icon(
+                            onPressed: () => Navigator.pushNamed(context, '/payment', arguments: {
+                              'type': 'subscription', 'subscription_id': s['id'],
+                              'amount': double.tryParse((s['amount_paid'] ?? plan['price'] ?? 0).toString()),
+                              'label': 'Subscription ${plan['name']}',
+                            }).then((_) => _load()),
+                            icon: const Icon(Icons.payment, size: 18),
+                            label: const Text('Complete Payment'),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warning, minimumSize: const Size(double.infinity, 44)),
+                          ),
+                        ],
+                        if (isActive && s['payment_status'] != 'pending') ...[
+                          const SizedBox(height: 14),
+                          Row(children: [
+                            if ((s['scheduled_visits_count'] ?? 0) < (plan['visits_per_month'] ?? 0))
+                              Expanded(child: ElevatedButton(
+                                onPressed: () => Navigator.pushNamed(context, '/schedule-subscription', arguments: s).then((r) { if (r == true) _load(); }),
+                                child: const Text('Schedule'),
+                                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, padding: EdgeInsets.zero),
+                              )),
+                            if ((s['scheduled_visits_count'] ?? 0) < (plan['visits_per_month'] ?? 0)) const SizedBox(width: 8),
+                            Expanded(child: OutlinedButton(
+                              onPressed: () => _pause(s['id']),
+                              child: const Text('Pause'),
+                              style: OutlinedButton.styleFrom(foregroundColor: AppTheme.textSecondary),
+                            )),
+                            const SizedBox(width: 8),
+                            Expanded(child: OutlinedButton(
+                              onPressed: () => _cancel(s['id']),
+                              child: const Text('Cancel'),
+                              style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red)),
+                            )),
+                          ]),
+                        ],
+                        if (s['status'] == 'paused') ...[
+                          const SizedBox(height: 14),
+                          ElevatedButton(
+                            onPressed: () => _resume(s['id']),
+                            child: const Text('Resume Subscription'),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, minimumSize: const Size(double.infinity, 44)),
                           ),
                         ],
                       ]),
