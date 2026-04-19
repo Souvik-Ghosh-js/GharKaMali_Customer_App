@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
 import '../../utils/app_theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ScheduleSubscriptionScreen extends StatefulWidget {
   final Map<String, dynamic> subscription;
@@ -101,38 +102,44 @@ class _ScheduleSubscriptionScreenState
     return Scaffold(
       appBar: AppBar(title: const Text('Schedule Visits')),
       body: Column(children: [
-        Padding(
+        Container(
+          margin: const EdgeInsets.all(20),
           padding: const EdgeInsets.all(20),
-          child: GkmCard(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(
-                'Select $_remaining Dates',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: AppTheme.primary),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'For your ${widget.subscription['plan']?['name'] ?? 'Subscription'} plan',
-                style: const TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 12),
-              ),
-              const Divider(height: 24),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                _Stat('Total', '$_totalVisits'),
-                _Stat('Scheduled', '$_scheduledVisits'),
-                _Stat('Remaining', '$_remaining'),
-              ]),
-            ]),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
           ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              'Select $_remaining Dates',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primary),
+            ).animate().fadeIn(duration: 400.ms),
+            const SizedBox(height: 4),
+            Text(
+              'For your ${widget.subscription['plan']?['name'] ?? 'Subscription'} plan',
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+            ),
+            const Divider(height: 24),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              _Stat('Total', '$_totalVisits'),
+              _Stat('Scheduled', '$_scheduledVisits'),
+              _Stat('Remaining', '$_remaining'),
+            ]),
+          ]),
         ),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(children: [
-              GkmCard(
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 0),
                 padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                ),
                 child: TableCalendar(
                   firstDay: _minDate,
                   lastDay: _maxDate,
@@ -162,7 +169,7 @@ class _ScheduleSubscriptionScreenState
                   enabledDayPredicate: (day) =>
                       !day.isBefore(_minDate) && !day.isAfter(_maxDate),
                 ),
-              ),
+              ),  // end TableCalendar container
               const SizedBox(height: 20),
               if (_selectedDays.isNotEmpty) ...[
                 const Align(
@@ -204,17 +211,24 @@ class _ScheduleSubscriptionScreenState
                 offset: const Offset(0, -5))
           ],
         ),
-        child: ElevatedButton(
-          onPressed: _selectedDays.isEmpty || _loading ? null : _submit,
-          style: ElevatedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 50)),
-          child: _loading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2))
-              : Text('Confirm ${_selectedDays.length} Visits'),
+        child: SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: ElevatedButton(
+            onPressed: _selectedDays.isEmpty || _loading ? null : _submit,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: _loading
+                ? const SizedBox(
+                    width: 22, height: 22,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : Text(
+                    'Confirm ${_selectedDays.length} Visit${_selectedDays.length == 1 ? '' : 's'}',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+          ),
         ),
       ),
     );

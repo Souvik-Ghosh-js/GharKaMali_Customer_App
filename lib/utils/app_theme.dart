@@ -81,6 +81,47 @@ class AppTheme {
       unselectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
     ),
   );
+
+  static ThemeData get darkTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: primary,
+      primary: primary,
+      secondary: accent,
+      brightness: Brightness.dark,
+    ),
+    scaffoldBackgroundColor: const Color(0xFF0F172A),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF1E293B),
+      foregroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: false,
+      titleTextStyle: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        minimumSize: const Size(double.infinity, 54),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+    ),
+    cardTheme: const CardTheme(
+      color: Color(0xFF1E293B),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      elevation: 10,
+      backgroundColor: Color(0xFF1E293B),
+      selectedItemColor: primary,
+      unselectedItemColor: Color(0xFF94A3B8),
+      showUnselectedLabels: true,
+      type: BottomNavigationBarType.fixed,
+    ),
+  );
 }
 
 class GkmCard extends StatelessWidget {

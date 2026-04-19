@@ -5,6 +5,7 @@ import '../../services/api_service.dart';
 import '../../services/auth_provider.dart';
 import '../../services/location_provider.dart';
 import '../../utils/app_theme.dart';
+import '../../theme.dart';
 
 class DashboardTab extends StatefulWidget {
   const DashboardTab({super.key});
@@ -43,7 +44,7 @@ class _DashboardTabState extends State<DashboardTab> {
     final user = context.watch<AuthProvider>().user;
     final loc = context.watch<LocationProvider>();
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: Colors.grey[50],
       body: RefreshIndicator(
         color: AppTheme.primary,
         onRefresh: _load,
@@ -51,228 +52,249 @@ class _DashboardTabState extends State<DashboardTab> {
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverAppBar(
-              expandedHeight: 180,
+              expandedHeight: 200,
               floating: false,
               pinned: true,
               elevation: 0,
               backgroundColor: AppTheme.primary,
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
-                  decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
-                  child: Stack(children: [
-                    Positioned(right: -50, top: -50,
-                      child: CircleAvatar(radius: 100, backgroundColor: Colors.white.withOpacity(0.05))),
-                    Positioned(left: -30, bottom: -30,
-                      child: CircleAvatar(radius: 80, backgroundColor: Colors.white.withOpacity(0.03))),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 70, 24, 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Text(
-                            'Hello, ${user?['name']?.split(' ')[0] ?? 'there'} 👋',
-                            style: const TextStyle(color: Colors.white, fontSize: 28,
-                                fontWeight: FontWeight.bold, letterSpacing: -0.5),
-                          ).animate().fadeIn().slideX(),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Let\'s make your garden thrive today',
-                            style: TextStyle(color: Colors.white.withOpacity(0.8),
-                                fontSize: 16, fontWeight: FontWeight.w500),
-                          ).animate().fadeIn(delay: 200.ms),
-                        ],
-                      ),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppTheme.primary, Color(0xFF0D9488)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ]),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        right: -30,
+                        top: -30,
+                        child: CircleAvatar(
+                          radius: 100,
+                          backgroundColor: Colors.white.withOpacity(0.05),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 80, 24, 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Hello, ${user?['name']?.split(' ')[0] ?? 'there'} 👋',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -1,
+                              ),
+                            ).animate().fadeIn().slideX(begin: -0.2, end: 0),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Let\'s make your garden thrive',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ).animate().fadeIn(delay: 200.ms),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle),
-                      child: const Icon(Icons.notifications_outlined,
-                          color: Colors.white, size: 22),
-                    ),
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/notifications'),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+                  onPressed: () => Navigator.pushNamed(context, '/notifications'),
                 ),
+                const SizedBox(width: 8),
               ],
             ),
-
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-
-                    // ── Location bar (like Swiggy) ─────────────────────
-                    GestureDetector(
-                      onTap: () async {
-                        await Navigator.pushNamed(context, '/location-picker');
-                        _load();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.border),
-                        ),
-                        child: Row(children: [
-                          const Icon(Icons.location_on, color: AppTheme.primary, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              loc.cityName ?? 'Select your location',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: loc.hasLocation
-                                    ? AppTheme.textPrimary
-                                    : AppTheme.textSecondary,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+              child: Transform.translate(
+                offset: const Offset(0, -30),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Location Bar
+                      GestureDetector(
+                        onTap: () async {
+                          await Navigator.pushNamed(context, '/location-picker');
+                          _load();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 15,
+                                offset: const Offset(0, 5),
+                              )
+                            ],
                           ),
-                          const Icon(Icons.keyboard_arrow_down,
-                              color: AppTheme.textSecondary, size: 18),
-                        ]),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // ── Quick Actions ─────────────────────────────────
-                    const Text('Quick Actions',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                    const SizedBox(height: 16),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: [
-                          _QuickAction(icon: Icons.add_circle_outline, label: 'Book Now',
-                              color: AppTheme.primary,
-                              onTap: () => Navigator.pushNamed(context, '/bookings/create')),
-                          _QuickAction(icon: Icons.subscriptions_outlined, label: 'Subscribe',
-                              color: Colors.orange,
-                              onTap: () => Navigator.pushNamed(context, '/plans')),
-                          _QuickAction(icon: Icons.shopping_bag_outlined, label: 'Store',
-                              color: Colors.blue,
-                              onTap: () => Navigator.pushNamed(context, '/shop')),
-                          _QuickAction(icon: Icons.article_outlined, label: 'Blogs',
-                              color: Colors.deepPurple,
-                              onTap: () => Navigator.pushNamed(context, '/blogs')),
-                          _QuickAction(icon: Icons.local_florist_outlined, label: 'Identify',
-                              color: Colors.teal,
-                              onTap: () => Navigator.pushNamed(context, '/plant')),
-                        ].animate(interval: 50.ms).fadeIn(duration: 400.ms).slideX(begin: 0.2, end: 0),
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    if (_bookings.isNotEmpty) ...[
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        const Text('Upcoming Visits',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                        TextButton(
-                          onPressed: () => Navigator.pushNamed(context, '/bookings'),
-                          child: const Text('View All',
-                              style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
-                        ),
-                      ]),
-                      const SizedBox(height: 12),
-                      ..._bookings
-                          .take(2)
-                          .map((b) => _BookingCard(booking: b))
-                          .toList()
-                          .animate(interval: 100.ms)
-                          .fadeIn()
-                          .slideY(begin: 0.1, end: 0),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Plantopedia banner
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.teal.shade400, Colors.teal.shade700],
-                          begin: Alignment.topLeft, end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [BoxShadow(
-                            color: Colors.teal.withOpacity(0.3),
-                            blurRadius: 20, offset: const Offset(0, 8))],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => Navigator.pushNamed(context, '/plant'),
-                          borderRadius: BorderRadius.circular(24),
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Row(children: [
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(8)),
-                                  child: const Text('NEW FEATURE',
-                                      style: TextStyle(color: Colors.white, fontSize: 10,
-                                          fontWeight: FontWeight.bold, letterSpacing: 1)),
-                                ),
-                                const SizedBox(height: 12),
-                                const Text('AI Plantopedia',
-                                    style: TextStyle(color: Colors.white,
-                                        fontWeight: FontWeight.bold, fontSize: 22)),
-                                const SizedBox(height: 4),
-                                Text('Identify any plant instantly with your camera',
-                                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
-                              ])),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_on, color: AppTheme.primary, size: 20),
                               const SizedBox(width: 12),
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                                child: const Icon(Icons.camera_alt, color: Colors.teal, size: 28),
-                              ).animate(onPlay: (c) => c.repeat()).shimmer(delay: 2.seconds, duration: 1.5.seconds),
-                            ]),
+                              Expanded(
+                                child: Text(
+                                  loc.cityName ?? 'Select your location',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                    color: loc.hasLocation ? Colors.black87 : Colors.grey,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const Icon(Icons.keyboard_arrow_down, color: Colors.grey, size: 20),
+                            ],
                           ),
                         ),
+                      ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
+
+                      const SizedBox(height: 32),
+
+                      const Text(
+                        'Quick Actions',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5),
                       ),
-                    ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.9, 0.9)),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _ActionItem(
+                            icon: Icons.add_task_rounded,
+                            label: 'Book Now',
+                            color: Colors.emerald,
+                            onTap: () => Navigator.pushNamed(context, '/bookings/create'),
+                          ),
+                          _ActionItem(
+                            icon: Icons.auto_awesome_rounded,
+                            label: 'Subscribe',
+                            color: Colors.amber[700]!,
+                            onTap: () => Navigator.pushNamed(context, '/plans'),
+                          ),
+                          _ActionItem(
+                            icon: Icons.storefront_rounded,
+                            label: 'Shop',
+                            color: Colors.blueAccent,
+                            onTap: () => Navigator.pushNamed(context, '/shop'),
+                          ),
+                          _ActionItem(
+                            icon: Icons.menu_book_rounded,
+                            label: 'Blogs',
+                            color: Colors.purpleAccent,
+                            onTap: () => Navigator.pushNamed(context, '/blogs'),
+                          ),
+                        ],
+                      ).animate(interval: 100.ms).fadeIn().slideX(begin: 0.1, end: 0),
 
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
-                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      const Text('Our Care Plans',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                      IconButton(
-                          onPressed: () => Navigator.pushNamed(context, '/plans'),
-                          icon: const Icon(Icons.arrow_forward, size: 20)),
-                    ]),
-                    const SizedBox(height: 12),
-                    if (_loading)
-                      const Center(child: Padding(
-                          padding: EdgeInsets.all(40),
-                          child: CircularProgressIndicator()))
-                    else
-                      ..._plans
-                          .map((p) => _PlanCard(plan: p))
-                          .toList()
-                          .animate(interval: 100.ms)
-                          .fadeIn()
-                          .slideY(begin: 0.1, end: 0),
+                      if (_bookings.isNotEmpty) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Upcoming Visits',
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pushNamed(context, '/bookings'),
+                              child: const Text('See All', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ..._bookings.take(2).map((b) => _ModernBookingCard(booking: b)).toList(),
+                        const SizedBox(height: 24),
+                      ],
 
-                    const SizedBox(height: 100),
-                  ],
+                      // AI Banner
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF14B8A6), Color(0xFF0F766E)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF14B8A6).withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            )
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Identify Your Plants',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'AI-powered identification & care tips',
+                                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pushNamed(context, '/plant'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: const Color(0xFF0F766E),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                    child: const Text('Try Now', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.psychology_outlined, color: Colors.white, size: 80)
+                                .animate(onPlay: (c) => c.repeat())
+                                .shimmer(duration: 2.seconds),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      const Text(
+                        'Featured Care Plans',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      if (_loading)
+                        const Center(child: CircularProgressIndicator())
+                      else
+                        ..._plans.take(3).map((p) => _ModernPlanCard(plan: p)).toList(),
+
+                      const SizedBox(height: 100),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -283,180 +305,161 @@ class _DashboardTabState extends State<DashboardTab> {
   }
 }
 
-class _QuickAction extends StatelessWidget {
+class _ActionItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback onTap;
-  const _QuickAction(
-      {required this.icon,
-      required this.label,
-      required this.color,
-      required this.onTap});
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(right: 10),
-    child: SizedBox(
-      width: 80,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withOpacity(0.2)),
-          ),
-          child: Column(children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 6),
-            Text(label,
-                style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center),
-          ]),
-        ),
-      ),
-    ),
-  );
-}
 
-class _BookingCard extends StatelessWidget {
-  final Map booking;
-  const _BookingCard({required this.booking});
-  @override
-  Widget build(BuildContext context) => GkmCard(
-        padding: const EdgeInsets.all(16),
-        onTap: () => Navigator.pushNamed(context, '/booking-detail',
-            arguments: Map<String, dynamic>.from(booking)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.grass, color: AppTheme.primary, size: 20)),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(booking['booking_number'] ?? '',
-                  style: const TextStyle(fontWeight: FontWeight.w600,
-                      fontSize: 13, color: AppTheme.primary)),
-              Text(booking['scheduled_date'] ?? '',
-                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-            ])),
-            GkmBadge(booking['status'] ?? ''),
-          ]),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
-          Row(children: [
-            const Icon(Icons.person_outline,
-                size: 16, color: AppTheme.textSecondary),
-            const SizedBox(width: 4),
-            Text(booking['gardener']?['name'] ?? 'Assigning gardener…',
-                style: const TextStyle(
-                    fontSize: 13, color: AppTheme.textSecondary)),
-            const Spacer(),
-            Text('₹${booking['total_amount'] ?? 0}',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary)),
-          ]),
-          if (booking['status'] == 'in_progress' ||
-              booking['status'] == 'assigned') ...[
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 36,
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/track',
-                    arguments: booking['id'] as int),
-                icon: const Icon(Icons.location_on, size: 16),
-                label: const Text('Track Gardener'),
-                style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primary,
-                    side: const BorderSide(color: AppTheme.primary),
-                    minimumSize: Size.zero),
-              ),
-            ),
-          ],
-        ]),
-      );
-}
+  const _ActionItem({required this.icon, required this.label, required this.color, required this.onTap});
 
-class _PlanCard extends StatelessWidget {
-  final Map plan;
-  const _PlanCard({required this.plan});
   @override
   Widget build(BuildContext context) {
-    final isSubscription = plan['plan_type'] == 'subscription';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: GkmCard(
-        padding: const EdgeInsets.all(20),
-        onTap: () => Navigator.pushNamed(context, '/plans'),
-        child: Row(children: [
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Text(plan['name'] ?? '',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15)),
-              const SizedBox(width: 8),
-              if (isSubscription)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8)),
-                  child: const Text('Popular',
-                      style: TextStyle(
-                          color: AppTheme.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600)),
-                ),
-            ]),
-            const SizedBox(height: 4),
-            Text(plan['description'] ?? '',
-                style: const TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 12)),
-            const SizedBox(height: 8),
-            if (isSubscription)
-              Text(
-                  '${plan['visits_per_month']} visits/month · Max ${plan['max_plants']} plants',
-                  style: const TextStyle(
-                      color: AppTheme.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500)),
-          ])),
-          const SizedBox(width: 16),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('₹${plan['price']}',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: AppTheme.textPrimary)),
-            Text(isSubscription ? '/month' : '/visit',
-                style: const TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 12)),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                  color: AppTheme.primary,
-                  borderRadius: BorderRadius.circular(8)),
-              child: const Text('Book',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 65,
+            height: 65,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(18),
             ),
-          ]),
-        ]),
+            child: Icon(icon, color: color, size: 28),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black54),
+        ),
+      ],
+    );
+  }
+}
+
+class _ModernBookingCard extends StatelessWidget {
+  final Map booking;
+  const _ModernBookingCard({required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
+    return RoundedCard(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 45,
+                height: 45,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.calendar_today_rounded, color: AppTheme.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      booking['booking_number'] ?? '#ORD-000',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    Text(
+                      booking['scheduled_date'] ?? 'TBD',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              StatusChip(
+                label: (booking['status'] ?? 'Pending').toString().toUpperCase(),
+                color: _getStatusColor(booking['status']),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                booking['gardener']?['name'] ?? 'Assigning Gardener...',
+                style: const TextStyle(color: Colors.black54, fontSize: 13),
+              ),
+              Text(
+                '₹${booking['total_amount']}',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return Colors.green;
+      case 'in_progress':
+        return Colors.blue;
+      case 'pending':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+}
+
+class _ModernPlanCard extends StatelessWidget {
+  final Map plan;
+  const _ModernPlanCard({required this.plan});
+
+  @override
+  Widget build(BuildContext context) {
+    return RoundedCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  plan['name'] ?? '',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  plan['description'] ?? '',
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '₹${plan['price']}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primary),
+              ),
+              Text(
+                plan['plan_type'] == 'subscription' ? '/month' : '/visit',
+                style: const TextStyle(color: Colors.grey, fontSize: 11),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -19,6 +19,7 @@ import 'screens/blog/blog_list_screen.dart';
 import 'screens/subscription/plans_screen.dart';
 import 'screens/subscription/my_subscriptions_screen.dart';
 import 'screens/subscription/schedule_subscription_screen.dart';
+import 'screens/subscription/benefits_carousel_screen.dart';
 import 'screens/plant/plant_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/edit_profile_screen.dart';
@@ -30,6 +31,8 @@ import 'screens/booking/addon_picker_screen.dart';
 import 'screens/home/service_areas_screen.dart';
 import 'screens/payment/payment_screen.dart';
 import 'screens/location/location_picker_screen.dart';
+import 'screens/location/location_map_screen.dart';
+import 'screens/booking/summary_screen.dart';
 import 'utils/app_theme.dart';
 
 void main() async {
@@ -66,6 +69,8 @@ class MyApp extends StatelessWidget {
             },
           ),
         ),
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
         initialRoute: '/',
         routes: {
           '/': (_) => const SplashScreen(),
@@ -126,6 +131,21 @@ class MyApp extends StatelessWidget {
                             (args['amount'] as num?)?.toDouble(),
                         label: args['label'],
                       ));
+            case '/benefits-carousel':
+              return MaterialPageRoute(
+                  builder: (_) => BenefitsCarouselScreen(
+                      plan: settings.arguments as Map<String, dynamic>));
+            case '/booking-summary':
+              return MaterialPageRoute(
+                  builder: (_) => BookingSummaryScreen(
+                      bookingData: settings.arguments as Map<String, dynamic>,
+                      onConfirm: () {}, // To be implemented in controller
+                  ));
+            case '/location-map':
+              return MaterialPageRoute(
+                  builder: (_) => LocationMapScreen(
+                      onLocationSelected: (p, a) {}, // To be implemented
+                  ));
             case '/schedule-subscription':
               return MaterialPageRoute(
                   builder: (_) => ScheduleSubscriptionScreen(

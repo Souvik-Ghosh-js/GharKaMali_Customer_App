@@ -1,579 +1,468 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:latlong2/latlong.dart';
 import '../../services/api_service.dart';
 import '../../services/location_provider.dart';
 import '../../utils/app_theme.dart';
+import '../../theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class CreateBookingScreen extends StatefulWidget {
   const CreateBookingScreen({super.key});
   @override
-  State<CreateBookingScreen> createState() =>
-      _CreateBookingScreenState();
+  State<CreateBookingScreen> createState() => _CreateBookingScreenState();
 }
 
 class _CreateBookingScreenState extends State<CreateBookingScreen> {
-  int _step = 0;
-  List _geofences = [];
-  List _plans = [];
-  Map? _selectedGeofence;
+  int _currentStep = 0;
   String _bookingType = 'ondemand';
+  Map? _selectedArea;
   Map? _selectedPlan;
-  DateTime _date = DateTime.now().add(const Duration(days: 1));
-  int _plants = 1;
-  final _addressCtrl = TextEditingController();
-  double? _lat, _lng;
-  bool _loading = false;
+  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  int _plantCount = 1;
+  final _addressController = TextEditingController();
+  LatLng? _selectedLatLng;
+  bool _isLoading = false;
+
+  List _areas = [];
+  List _plans = [];
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    // Pre-fill geofence from LocationProvider if already set
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final loc = context.read<LocationProvider>();
-      if (loc.selectedGeofence != null) {
-        setState(() => _selectedGeofence = loc.selectedGeofence);
-      }
-      if (loc.lat != null) {
-        setState(() {
-          _lat = loc.lat;
-          _lng = loc.lng;
-        });
-      }
-    });
   }
 
   Future<void> _loadData() async {
     final api = context.read<ApiService>();
-    final loc = context.read<LocationProvider>();
-    // Load geofences (public endpoint) and plans
-    final [g, p] = await Future.wait([
-      loc.geofences.isEmpty
-          ? api.getGeofences()
-          : Future.value({'data': loc.geofences}),
-      api.getPlans(),
-    ]);
-    setState(() {
-      _geofences = g['data'] ?? [];
-      _plans = p['data'] ?? [];
-      // Auto-select from LocationProvider
-      if (_selectedGeofence == null && loc.geofenceId != null) {
-        _selectedGeofence = _geofences.firstWhere(
-            (gf) => gf['id'] == loc.geofenceId,
-            orElse: () => _geofences.isNotEmpty ? _geofences[0] : null);
-      }
-    });
-  }
-
-  Future<void> _submit() async {
-    if (_addressCtrl.text.isEmpty) {
-      _snack('Enter service address');
-      return;
-    }
-    if (_lat == null) {
-      _snack('Please detect location first');
-      return;
-    }
-    if (_selectedGeofence == null && _bookingType == 'ondemand') {
-      _snack('Select a service area');
-      return;
-    }
-    setState(() => _loading = true);
     try {
-      final api = context.read<ApiService>();
-      final geofenceId = _selectedGeofence?['id'] as int?;
-
-      if (_bookingType == 'subscription' && _selectedPlan != null) {
-        await api.subscribe({
-          'plan_id': _selectedPlan!['id'],
-          'geofence_id': geofenceId, // FIX: use geofence_id not zone_id
-          'service_address': _addressCtrl.text,
-          'service_latitude': _lat,
-          'service_longitude': _lng,
-          'plant_count': _plants,
-        });
-        _snack('Subscription activated! 🎉');
-      } else {
-        await api.createBooking({
-          'geofence_id': geofenceId, // FIX: use geofence_id not zone_id
-          'scheduled_date':
-              '${_date.year}-${_date.month.toString().padLeft(2, '0')}-${_date.day.toString().padLeft(2, '0')}',
-          'service_address': _addressCtrl.text,
-          'service_latitude': _lat,
-          'service_longitude': _lng,
-          'plant_count': _plants,
-        });
-        _snack('Booking confirmed! 🌿');
-      }
-      if (mounted) Navigator.pop(context, true);
-    } catch (e) {
-      _snack(e.toString());
-    }
-    setState(() => _loading = false);
+      final results = await Future.wait([
+        api.getGeofences(),
+        api.getPlans(),
+      ]);
+      setState(() {
+        _areas = results[0]['data'] ?? [];
+        _plans = results[1]['data'] ?? [];
+      });
+    } catch (_) {}
   }
 
-  void _snack(String msg) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(msg)));
+  void _nextStep() {
+    if (_currentStep == 0) {
+      if (_bookingType == 'ondemand' && _selectedArea == null) {
+        _showError("Please select a service area");
+        return;
+      }
+      if (_bookingType == 'subscription' && _selectedPlan == null) {
+        _showError("Please select a plan");
+        return;
+      }
+    }
+    if (_currentStep == 1 && _selectedLatLng == null) {
+      _showError("Please select a location on the map");
+      return;
+    }
+    if (_currentStep == 2 && _addressController.text.trim().isEmpty) {
+      _showError("Please enter your address");
+      return;
+    }
+
+    if (_currentStep < 3) {
+      setState(() => _currentStep++);
+    } else {
+      _finalizeBooking();
+    }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _finalizeBooking() async {
+    setState(() => _isLoading = true);
+    // Prepare data for summary/payment
+    final bookingData = {
+      'type': _bookingType,
+      'area': _selectedArea,
+      'plan': _selectedPlan,
+      'date': "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
+      'plants': _plantCount,
+      'address': _addressController.text,
+      'lat': _selectedLatLng?.latitude,
+      'lng': _selectedLatLng?.longitude,
+      'total': _calculateTotal(),
+    };
+
+    // In a real app, we'd navigate to summary screen here
+    Navigator.pushNamed(context, '/booking-summary', arguments: bookingData);
+    setState(() => _isLoading = false);
+  }
+
+  double _calculateTotal() {
+    if (_bookingType == 'ondemand') {
+      return double.tryParse(_selectedArea?['base_price'].toString() ?? '0') ?? 0;
+    } else {
+      return double.tryParse(_selectedPlan?['price'].toString() ?? '0') ?? 0;
+    }
+  }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Book a Service')),
-        body: Column(children: [
-          Container(
-            color: Colors.white,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
-                children: List.generate(
-                    3,
-                    (i) => Expanded(
-                            child: Row(children: [
-                          _StepDot(i, _step),
-                          if (i < 2)
-                            Expanded(
-                                child: Container(
-                                    height: 2,
-                                    color: i < _step
-                                        ? AppTheme.primary
-                                        : AppTheme.border)),
-                        ])))),
-          ),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Book a Service")),
+      body: Column(
+        children: [
+          _buildStepperHeader(),
           Expanded(
-              child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: [_stepArea(), _stepDetails(), _stepConfirm()][_step],
-          )),
-          _BottomBar(
-            step: _step,
-            totalSteps: 3,
-            loading: _loading,
-            onBack:
-                _step > 0 ? () => setState(() => _step--) : null,
-            onNext: () {
-              if (_step == 0 &&
-                  _selectedGeofence == null &&
-                  _bookingType == 'ondemand') {
-                _snack('Select a service area');
-                return;
-              }
-              if (_step < 2)
-                setState(() => _step++);
-              else
-                _submit();
-            },
-            nextLabel: _step == 2 ? 'Confirm Booking' : 'Continue',
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: IndexedStack(
+                index: _currentStep,
+                children: [
+                  _buildServiceSelection(),
+                  _buildLocationStep(),
+                  _buildDetailsStep(),
+                  _buildFinalReviewStep(),
+                ],
+              ),
+            ),
           ),
-        ]),
-      );
+        ],
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+        ),
+        child: Row(
+          children: [
+            if (_currentStep > 0) ...[
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => setState(() => _currentStep--),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text("Back"),
+                ),
+              ),
+              const SizedBox(width: 16),
+            ],
+            Expanded(
+              flex: 2,
+              child: GradientButton(
+                label: _currentStep == 3 ? "Review Summary" : "Continue",
+                onPressed: _nextStep,
+                isLoading: _isLoading,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  Widget _stepArea() =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Service Type',
-            style:
-                TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
-        Row(children: [
-          _TypeCard('On-Demand', Icons.flash_on, 'ondemand',
-              _bookingType, (v) => setState(() => _bookingType = v)),
-          const SizedBox(width: 12),
-          _TypeCard('Subscription', Icons.repeat, 'subscription',
-              _bookingType, (v) => setState(() => _bookingType = v)),
-        ]),
-        const SizedBox(height: 24),
-        if (_bookingType == 'ondemand') ...[
-          const Text('Select Service Area',
-              style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          ..._geofences.map((g) => GkmCard(
-                padding: const EdgeInsets.all(14),
-                onTap: () => setState(() => _selectedGeofence = g),
-                child: Row(children: [
-                  Radio(
-                      value: g,
-                      groupValue: _selectedGeofence,
-                      onChanged: (v) =>
-                          setState(() => _selectedGeofence = v as Map),
-                      activeColor: AppTheme.primary),
+  Widget _buildStepperHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+      color: Colors.white,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(4, (index) {
+          final isActive = index <= _currentStep;
+          return Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: isActive ? AppTheme.primary : Colors.grey[200],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: index < _currentStep
+                        ? const Icon(Icons.check, color: Colors.white, size: 16)
+                        : Text(
+                            "${index + 1}",
+                            style: TextStyle(
+                              color: isActive ? Colors.white : Colors.grey,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                  ),
+                ),
+                if (index < 3)
                   Expanded(
-                      child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                          children: [
-                    Text(g['name'] ?? '',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600)),
-                    Text(g['city'] ?? '',
-                        style: const TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontSize: 12)),
-                  ])),
-                  Text('₹${g['base_price']}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primary)),
-                ]),
+                    child: Container(
+                      height: 2,
+                      color: index < _currentStep ? AppTheme.primary : Colors.grey[200],
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildServiceSelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Choose Service Type", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            _TypeCard(
+              label: "One-Time",
+              icon: Icons.flash_on_rounded,
+              isSelected: _bookingType == 'ondemand',
+              onTap: () => setState(() => _bookingType = 'ondemand'),
+            ),
+            const SizedBox(width: 16),
+            _TypeCard(
+              label: "Subscription",
+              icon: Icons.calendar_month_rounded,
+              isSelected: _bookingType == 'subscription',
+              onTap: () => setState(() => _bookingType = 'subscription'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 30),
+        if (_bookingType == 'ondemand') ...[
+          const Text("Select Service Area", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          ..._areas.map((a) => _AreaCard(
+                area: a,
+                isSelected: _selectedArea?['id'] == a['id'],
+                onTap: () => setState(() => _selectedArea = a),
               )),
         ] else ...[
-          const Text('Select Plan',
-              style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600)),
+          const Text("Select Subscription Plan", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          ..._plans
-              .where((p) => p['plan_type'] == 'subscription')
-              .map((p) => Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    child: GkmCard(
-                      padding: const EdgeInsets.all(14),
-                      onTap: () =>
-                          setState(() => _selectedPlan = p),
-                      child: Row(children: [
-                        Radio(
-                            value: p,
-                            groupValue: _selectedPlan,
-                            onChanged: (v) => setState(
-                                () => _selectedPlan = v as Map),
-                            activeColor: AppTheme.primary),
-                        Expanded(
-                            child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                          Text(p['name'] ?? '',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600)),
-                          Text(
-                              '${p['visits_per_month']} visits · Max ${p['max_plants']} plants',
-                              style: const TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 12)),
-                        ])),
-                        Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.end,
-                            children: [
-                          Text('₹${p['price']}',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: AppTheme.primary)),
-                          const Text('/month',
-                              style: TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 11)),
-                        ]),
-                      ]),
-                    ),
-                  )),
+          ..._plans.where((p) => p['plan_type'] == 'subscription').map((p) => _PlanSelectionCard(
+                plan: p,
+                isSelected: _selectedPlan?['id'] == p['id'],
+                onTap: () => setState(() => _selectedPlan = p),
+              )),
         ],
-      ]);
+      ],
+    ).animate().fadeIn();
+  }
 
-  Widget _stepDetails() =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Service Details',
-            style:
-                TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+  Widget _buildLocationStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Where should we come?", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 20),
+        RoundedCard(
+          padding: EdgeInsets.zero,
+          child: ListTile(
+            leading: const Icon(Icons.map_rounded, color: AppTheme.primary),
+            title: Text(_selectedLatLng == null ? "Select on Map" : "Location Selected"),
+            subtitle: Text(_selectedLatLng == null ? "Pin your exact address" : "Coords: ${_selectedLatLng!.latitude.toStringAsFixed(4)}, ${_selectedLatLng!.longitude.toStringAsFixed(4)}"),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              // Navigate to map screen and wait for result
+              Navigator.pushNamed(context, '/location-map').then((result) {
+                if (result != null && result is Map) {
+                  setState(() {
+                    _selectedLatLng = result['latlng'];
+                    _addressController.text = result['address'] ?? "";
+                  });
+                }
+              });
+            },
+          ),
+        ),
+        const SizedBox(height: 20),
+        const Text("Manual Address", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _addressController,
+          maxLines: 3,
+          decoration: InputDecoration(
+            hintText: "Enter house no, building name, landmark...",
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ],
+    ).animate().fadeIn();
+  }
+
+  Widget _buildDetailsStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Service Details", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 20),
         if (_bookingType == 'ondemand') ...[
-          const Text('Preferred Date',
-              style: TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          GkmCard(
+          const Text("Select Date", style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          RoundedCard(
             onTap: () async {
-              final d = await showDatePicker(
-                  context: context,
-                  initialDate: _date,
-                  firstDate: DateTime.now(),
-                  lastDate:
-                      DateTime.now().add(const Duration(days: 30)));
-              if (d != null) setState(() => _date = d);
+              final date = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate,
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 30)),
+              );
+              if (date != null) setState(() => _selectedDate = date);
             },
-            child: Row(children: [
-              const Icon(Icons.calendar_today,
-                  color: AppTheme.primary),
-              const SizedBox(width: 12),
-              Text(
-                  '${_date.day}/${_date.month}/${_date.year}',
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w500)),
-            ]),
-          ),
-          const SizedBox(height: 20),
-        ],
-        const Text('Number of Plants',
-            style: TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        Row(children: [
-          IconButton(
-              onPressed:
-                  _plants > 1 ? () => setState(() => _plants--) : null,
-              icon: const Icon(Icons.remove_circle_outline,
-                  color: AppTheme.primary)),
-          Text('$_plants',
-              style: const TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.bold)),
-          IconButton(
-              onPressed: () => setState(() => _plants++),
-              icon: const Icon(Icons.add_circle_outline,
-                  color: AppTheme.primary)),
-          const Spacer(),
-          Text('$_plants plant${_plants > 1 ? 's' : ''}',
-              style: const TextStyle(color: AppTheme.textSecondary)),
-        ]),
-        const SizedBox(height: 20),
-        const Text('Service Address',
-            style: TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _addressCtrl,
-          maxLines: 3,
-          decoration: const InputDecoration(
-              hintText:
-                  'Enter full address where service is needed'),
-        ),
-        const SizedBox(height: 12),
-        // Show location status
-        if (_lat != null)
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppTheme.success.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: AppTheme.success.withOpacity(0.4)),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today_rounded, color: AppTheme.primary),
+                const SizedBox(width: 12),
+                Text("${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}", style: const TextStyle(fontWeight: FontWeight.bold)),
+              ],
             ),
-            child: const Row(children: [
-              Icon(Icons.check_circle,
-                  color: AppTheme.success, size: 16),
-              SizedBox(width: 6),
-              Text('Location detected from your profile',
-                  style: TextStyle(
-                      color: AppTheme.success, fontSize: 12)),
-            ]),
-          )
-        else
-          OutlinedButton.icon(
-            onPressed: () async {
-              final loc = context.read<LocationProvider>();
-              final ok = await loc.detectAndSetLocation();
-              if (ok && mounted) {
-                setState(() {
-                  _lat = loc.lat;
-                  _lng = loc.lng;
-                });
-              } else if (mounted) {
-                _snack('Could not get location');
-              }
-            },
-            icon: const Icon(Icons.my_location, size: 18),
-            label: const Text('Detect My Location'),
-            style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primary,
-                side: const BorderSide(color: AppTheme.primary),
-                minimumSize: Size.zero),
           ),
-      ]);
-
-  Widget _stepConfirm() {
-    double total = 0;
-    if (_bookingType == 'ondemand' && _selectedGeofence != null) {
-      total =
-          double.tryParse(_selectedGeofence!['base_price'].toString()) ??
-              0;
-    } else if (_selectedPlan != null) {
-      total =
-          double.tryParse(_selectedPlan!['price'].toString()) ?? 0;
-    }
-    return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Confirm Booking',
-              style: TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 20),
-          GkmCard(
-              child: Column(children: [
-            _ConfirmRow('Type',
-                _bookingType == 'subscription'
-                    ? 'Subscription'
-                    : 'On-Demand'),
-            if (_selectedGeofence != null)
-              _ConfirmRow('Area',
-                  '${_selectedGeofence!['name']}, ${_selectedGeofence!['city']}'),
-            if (_selectedPlan != null)
-              _ConfirmRow('Plan', _selectedPlan!['name'] ?? ''),
-            if (_bookingType == 'ondemand')
-              _ConfirmRow('Date',
-                  '${_date.day}/${_date.month}/${_date.year}'),
-            _ConfirmRow('Plants', '$_plants'),
-            _ConfirmRow(
-                'Address',
-                _addressCtrl.text.isEmpty
-                    ? '–'
-                    : _addressCtrl.text),
-            const Divider(),
-            _ConfirmRow('Total', '₹${total.toStringAsFixed(0)}',
-                bold: true),
-          ])),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: AppTheme.primary.withOpacity(0.2))),
-            child: const Row(children: [
-              Icon(Icons.info_outline,
-                  color: AppTheme.primary, size: 18),
-              SizedBox(width: 8),
-              Expanded(
-                  child: Text(
-                'A gardener will be assigned and you\'ll get WhatsApp confirmation.',
-                style:
-                    TextStyle(color: AppTheme.primary, fontSize: 13),
-              )),
-            ]),
-          ),
-        ]);
+          const SizedBox(height: 24),
+        ],
+        const Text("Plant Count", style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _CountBtn(icon: Icons.remove, onTap: () => setState(() => _plantCount = _plantCount > 1 ? _plantCount - 1 : 1)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text("$_plantCount", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            ),
+            _CountBtn(icon: Icons.add, onTap: () => setState(() => _plantCount++)),
+          ],
+        ),
+      ],
+    ).animate().fadeIn();
   }
-}
 
-class _ConfirmRow extends StatelessWidget {
-  final String k, v;
-  final bool bold;
-  const _ConfirmRow(this.k, this.v, {this.bold = false});
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(children: [
-          Text(k,
-              style:
-                  const TextStyle(color: AppTheme.textSecondary)),
-          const Spacer(),
-          Text(v,
-              style: TextStyle(
-                  fontWeight: bold
-                      ? FontWeight.bold
-                      : FontWeight.w500,
-                  fontSize: bold ? 16 : 14)),
-        ]),
-      );
-}
-
-class _StepDot extends StatelessWidget {
-  final int index, current;
-  const _StepDot(this.index, this.current);
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: index <= current ? AppTheme.primary : AppTheme.border,
-        ),
-        child: Center(
-          child: index < current
-              ? const Icon(Icons.check, color: Colors.white, size: 16)
-              : Text('${index + 1}',
-                  style: TextStyle(
-                      color: index == current
-                          ? Colors.white
-                          : AppTheme.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold)),
-        ),
-      );
+  Widget _buildFinalReviewStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Great! You're almost there.", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        const Text("Everything looks good. Tap Continue to see your total.", style: TextStyle(color: Colors.grey)),
+        const SizedBox(height: 30),
+        const Icon(Icons.task_alt_rounded, size: 100, color: AppTheme.primary).animate().scale(),
+      ],
+    ).animate().fadeIn();
+  }
 }
 
 class _TypeCard extends StatelessWidget {
-  final String label, value, group;
+  final String label;
   final IconData icon;
-  final ValueChanged<String> onChanged;
-  const _TypeCard(this.label, this.icon, this.value, this.group,
-      this.onChanged);
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _TypeCard({required this.label, required this.icon, required this.isSelected, required this.onTap});
+
   @override
   Widget build(BuildContext context) {
-    final sel = value == group;
     return Expanded(
-        child: GestureDetector(
-      onTap: () => onChanged(value),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: sel
-              ? AppTheme.primary.withOpacity(0.08)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-              color: sel ? AppTheme.primary : AppTheme.border,
-              width: sel ? 2 : 1),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primary.withOpacity(0.05) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isSelected ? AppTheme.primary : Colors.grey[200]!, width: 2),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: isSelected ? AppTheme.primary : Colors.grey, size: 32),
+              const SizedBox(height: 8),
+              Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? AppTheme.primary : Colors.black54)),
+            ],
+          ),
         ),
-        child: Column(children: [
-          Icon(icon,
-              color: sel
-                  ? AppTheme.primary
-                  : AppTheme.textSecondary,
-              size: 28),
-          const SizedBox(height: 8),
-          Text(label,
-              style: TextStyle(
-                  color: sel
-                      ? AppTheme.primary
-                      : AppTheme.textSecondary,
-                  fontWeight: FontWeight.w600)),
-        ]),
       ),
-    ));
+    );
   }
 }
 
-class _BottomBar extends StatelessWidget {
-  final int step, totalSteps;
-  final bool loading;
-  final VoidCallback? onBack;
-  final VoidCallback onNext;
-  final String nextLabel;
-  const _BottomBar(
-      {required this.step,
-      required this.totalSteps,
-      required this.loading,
-      required this.onBack,
-      required this.onNext,
-      required this.nextLabel});
+class _AreaCard extends StatelessWidget {
+  final Map area;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _AreaCard({required this.area, required this.isSelected, required this.onTap});
+
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-        decoration: const BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                  color: Color(0x0F000000),
-                  blurRadius: 20,
-                  offset: Offset(0, -4))
-            ]),
-        child: Row(children: [
-          if (onBack != null) ...[
-            OutlinedButton(
-                onPressed: onBack,
-                child: const Text('Back'),
-                style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(80, 52),
-                    foregroundColor: AppTheme.textPrimary,
-                    side: const BorderSide(color: AppTheme.border))),
-            const SizedBox(width: 12),
-          ],
+  Widget build(BuildContext context) {
+    return RoundedCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      onTap: onTap,
+      child: Row(
+        children: [
+          Radio(value: true, groupValue: isSelected, onChanged: (_) => onTap(), activeColor: AppTheme.primary),
           Expanded(
-              child: ElevatedButton(
-            onPressed: loading ? null : onNext,
-            child: loading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2))
-                : Text(nextLabel),
-          )),
-        ]),
-      );
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(area['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text("${area['city']}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ]),
+          ),
+          Text("₹${area['base_price']}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanSelectionCard extends StatelessWidget {
+  final Map plan;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _PlanSelectionCard({required this.plan, required this.isSelected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return RoundedCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      onTap: onTap,
+      child: Row(
+        children: [
+          Radio(value: true, groupValue: isSelected, onChanged: (_) => onTap(), activeColor: AppTheme.primary),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(plan['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text("${plan['visits_per_month']} visits/mo", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ]),
+          ),
+          Text("₹${plan['price']}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CountBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _CountBtn({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 45,
+        height: 45,
+        decoration: BoxDecoration(
+          color: AppTheme.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: AppTheme.primary),
+      ),
+    );
+  }
 }
