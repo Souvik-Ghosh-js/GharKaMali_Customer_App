@@ -15,7 +15,8 @@ class AuthProvider extends ChangeNotifier {
 
   Map<String, dynamic>? get user => _user;
   bool get loading => _loading;
-  bool get isLoggedIn => _user != null && _prefs.getString('token') != null;
+  bool get isLoggedIn =>
+      _user != null && _prefs.getString('token') != null;
   String? get token => _prefs.getString('token');
 
   void _loadUser() {
@@ -25,8 +26,10 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> sendOtp(String phone) => _api.sendOtp(phone);
 
-  Future<void> verifyOtp(String phone, String otp, {String? name}) async {
-    _loading = true; notifyListeners();
+  Future<void> verifyOtp(String phone, String otp,
+      {String? name}) async {
+    _loading = true;
+    notifyListeners();
     try {
       final res = await _api.verifyOtp(phone, otp, name: name);
       final data = res['data'];
@@ -34,7 +37,8 @@ class AuthProvider extends ChangeNotifier {
       await _prefs.setString('user', jsonEncode(data['user']));
       _user = data['user'];
     } finally {
-      _loading = false; notifyListeners();
+      _loading = false;
+      notifyListeners();
     }
   }
 
